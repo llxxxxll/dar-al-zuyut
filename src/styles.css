@@ -1,0 +1,270 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Tajawal', 'Cairo', system-ui, sans-serif;
+  --font-display: 'Tajawal', 'Cairo', system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-onyx: var(--onyx);
+  --color-onyx-soft: var(--onyx-soft);
+  --color-gold-deep: var(--gold-deep);
+
+  --shadow-elegant: 0 10px 40px -10px color-mix(in oklab, var(--primary) 25%, transparent);
+  --shadow-glow: 0 0 60px color-mix(in oklab, var(--primary-glow) 35%, transparent);
+  --shadow-soft: 0 4px 20px -4px oklch(0.2 0.02 60 / 0.08);
+  --shadow-card: 0 2px 12px -2px oklch(0.2 0.02 60 / 0.06), 0 1px 3px oklch(0.2 0.02 60 / 0.04);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Warm cream background palette — Premium Dar AlZuyut */
+  --background: oklch(0.975 0.012 78);
+  --foreground: oklch(0.14 0.015 55);
+
+  --card: oklch(0.995 0.005 80);
+  --card-foreground: oklch(0.14 0.015 55);
+
+  --popover: oklch(0.99 0.005 80);
+  --popover-foreground: oklch(0.14 0.015 55);
+
+  /* Rich amber/oil gold — deeper, more premium */
+  --primary: oklch(0.72 0.15 70);
+  --primary-foreground: oklch(0.12 0.015 55);
+  --primary-glow: oklch(0.85 0.16 82);
+
+  --secondary: oklch(0.94 0.022 75);
+  --secondary-foreground: oklch(0.18 0.02 55);
+
+  --muted: oklch(0.93 0.018 75);
+  --muted-foreground: oklch(0.46 0.025 60);
+
+  --accent: oklch(0.91 0.045 78);
+  --accent-foreground: oklch(0.16 0.02 55);
+
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --success: oklch(0.6 0.14 155);
+  --success-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.88 0.02 75);
+  --input: oklch(0.91 0.018 75);
+  --ring: oklch(0.72 0.15 70);
+
+  /* Deep onyx + amber gradient palette */
+  --onyx: oklch(0.13 0.013 55);
+  --onyx-soft: oklch(0.18 0.018 60);
+  --gold-deep: oklch(0.62 0.14 65);
+
+  --gradient-gold: linear-gradient(135deg, oklch(0.82 0.16 82) 0%, oklch(0.68 0.16 65) 100%);
+  --gradient-gold-soft: linear-gradient(135deg, oklch(0.97 0.04 85), oklch(0.93 0.06 75));
+  --gradient-dark: linear-gradient(135deg, oklch(0.10 0.012 50) 0%, oklch(0.18 0.02 60) 100%);
+  --gradient-onyx-gold: linear-gradient(135deg, oklch(0.10 0.012 50) 0%, oklch(0.18 0.02 60) 55%, oklch(0.32 0.06 65) 100%);
+  --gradient-hero: linear-gradient(180deg, oklch(0.975 0.012 78) 0%, oklch(0.95 0.028 78) 100%);
+  --gradient-radial-gold: radial-gradient(ellipse at 50% 0%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 65%);
+  --gradient-oil: radial-gradient(circle at 30% 30%, oklch(0.85 0.16 82 / 0.4), transparent 60%), radial-gradient(circle at 70% 70%, oklch(0.62 0.14 65 / 0.3), transparent 60%);
+}
+
+.dark {
+  --background: oklch(0.14 0.015 60);
+  --foreground: oklch(0.97 0.01 75);
+  --card: oklch(0.18 0.02 60);
+  --card-foreground: oklch(0.97 0.01 75);
+  --popover: oklch(0.18 0.02 60);
+  --popover-foreground: oklch(0.97 0.01 75);
+  --primary: oklch(0.78 0.14 80);
+  --primary-foreground: oklch(0.15 0.02 60);
+  --primary-glow: oklch(0.85 0.14 85);
+  --secondary: oklch(0.22 0.02 60);
+  --secondary-foreground: oklch(0.97 0.01 75);
+  --muted: oklch(0.22 0.02 60);
+  --muted-foreground: oklch(0.7 0.02 70);
+  --accent: oklch(0.28 0.04 75);
+  --accent-foreground: oklch(0.97 0.01 75);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.65 0.14 155);
+  --success-foreground: oklch(0.99 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.78 0.14 80);
+}
+
+/* Reusable elevated shadow tokens */
+@theme inline {
+  --shadow-luxe: 0 30px 80px -30px oklch(0.18 0.02 60 / 0.35), 0 12px 32px -12px oklch(0.18 0.02 60 / 0.18);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "ss02";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 35%, transparent);
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  .text-gold-gradient {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-gold-gradient {
+    background: var(--gradient-gold);
+  }
+
+  .bg-gold-soft {
+    background: var(--gradient-gold-soft);
+  }
+
+  .bg-dark-gradient {
+    background: var(--gradient-dark);
+  }
+
+  .bg-onyx-gold {
+    background: var(--gradient-onyx-gold);
+  }
+
+  .bg-oil-radial {
+    background: var(--gradient-oil);
+  }
+
+  .bg-hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .gold-shimmer {
+    background: linear-gradient(
+      110deg,
+      oklch(0.74 0.13 78) 0%,
+      oklch(0.92 0.13 88) 45%,
+      oklch(0.74 0.13 78) 90%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .grain-overlay {
+    position: relative;
+  }
+  .grain-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(oklch(0.2 0.02 60 / 0.04) 1px, transparent 1px);
+    background-size: 3px 3px;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .float-anim {
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  /* Marquee for brands */
+  .marquee {
+    animation: marquee 35s linear infinite;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* Subtle oil-drop pattern overlay */
+  .oil-drops::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 12% 20%, color-mix(in oklab, var(--primary) 10%, transparent) 0, transparent 12%),
+      radial-gradient(circle at 78% 65%, color-mix(in oklab, var(--primary) 8%, transparent) 0, transparent 14%),
+      radial-gradient(circle at 50% 90%, color-mix(in oklab, var(--primary) 6%, transparent) 0, transparent 18%);
+    pointer-events: none;
+  }
+
+  /* Premium card border glow */
+  .border-luxe {
+    border: 1px solid color-mix(in oklab, var(--primary) 18%, transparent);
+    background: linear-gradient(180deg, var(--card), color-mix(in oklab, var(--primary) 2%, var(--card)));
+  }
+}

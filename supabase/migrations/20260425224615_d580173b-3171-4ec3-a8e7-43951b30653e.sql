@@ -1,0 +1,2 @@
+-- Test admin account removed for production deployment.
+-- The first registered user is automatically promoted to admin via handle_new_user().

@@ -1,0 +1,20 @@
+# Set your Supabase project ID after creating a new project:
+# project_id = "your-project-id"
+
+[functions.check-phone]
+verify_jwt = false
+
+[functions.send-otp]
+verify_jwt = false
+
+[functions.verify-otp]
+verify_jwt = false
+
+[functions.create-customer-account]
+verify_jwt = false
+
+[functions.send-reminder-message]
+verify_jwt = false
+
+[functions.sms-status]
+verify_jwt = false
