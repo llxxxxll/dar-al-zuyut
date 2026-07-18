@@ -213,6 +213,52 @@ function Account() {
     { v: "profile", l: "الإعدادات", icon: User },
   ];
 
+  const mobileNavItems: {
+    v: Tab;
+    l: string;
+    icon: React.ComponentType<{ className?: string }>;
+    desc: string;
+    badge?: string | number;
+  }[] = [
+    {
+      v: "notifications",
+      l: "الإشعارات",
+      icon: Bell,
+      desc: "تابع رسائل وتنبيهات دار الزيوت",
+      badge: unreadNotificationsCount > 0 ? `غير مقروء: ${unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}` : undefined,
+    },
+    {
+      v: "cars",
+      l: "سياراتي",
+      icon: CarIcon,
+      desc: "إدارة سياراتك والقراءات",
+    },
+    {
+      v: "appointments",
+      l: "مواعيدي",
+      icon: Calendar,
+      desc: "حجز ومتابعة المواعيد",
+    },
+    {
+      v: "services",
+      l: "سجل الخدمات",
+      icon: Wrench,
+      desc: "عرض جميع تغييرات الزيت",
+    },
+    {
+      v: "reviews",
+      l: "تقييم الخدمة",
+      icon: Star,
+      desc: "شاركنا رأيك في الخدمة",
+    },
+    {
+      v: "profile",
+      l: "الإعدادات",
+      icon: User,
+      desc: "تعديل بيانات حسابك",
+    },
+  ];
+
   return (
     <SiteLayout>
       {/* Personal hero */}
@@ -243,6 +289,43 @@ function Account() {
         </div>
       </section>
 
+      {/* Mobile Navigation Cards */}
+      <section className="md:hidden pb-6">
+        <div className="container mx-auto max-w-5xl min-w-0 px-4">
+          <h2 className="text-lg font-extrabold mb-4">إدارة حسابك</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {mobileNavItems.map((item) => (
+              <button
+                key={item.v}
+                onClick={() => setTab(item.v)}
+                className={`rounded-2xl border p-4 shadow-card text-right transition-all min-w-0 ${
+                  tab === item.v
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-border bg-card hover:border-primary/20 hover:bg-secondary/30"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="size-10 rounded-xl bg-secondary grid place-items-center shrink-0">
+                    <item.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  {item.badge && (
+                    <span className="inline-flex items-center rounded-full bg-destructive px-2 py-0.5 text-[10px] font-extrabold text-white">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <h3 className="font-bold text-sm leading-tight">{item.l}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -257,9 +340,9 @@ function Account() {
 
       <section className="overflow-x-hidden pb-[calc(120px+env(safe-area-inset-bottom))]">
         <div className="container mx-auto max-w-5xl min-w-0 overflow-x-hidden px-4 md:px-8">
-          {/* Tabs */}
-          <div className="mb-6 -mx-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex w-max min-w-full gap-1.5 rounded-2xl border border-border bg-secondary/60 p-1.5 md:w-auto">
+          {/* Tabs - Hidden on mobile */}
+          <div className="hidden md:block mb-6">
+            <div className="flex gap-1.5 rounded-2xl border border-border bg-secondary/60 p-1.5 w-auto">
               {tabs.map((t) => (
                 <button
                   key={t.v}
