@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatArDate, OIL_CHANGE_KM, OIL_REMINDER_DAYS } from "@/lib/reminder";
 import { LoyaltyCardSection } from "@/components/admin/LoyaltyCardSection";
 import { useReminderSettings } from "@/hooks/useAppSettings";
+import { DraftControls } from "@/components/shared/DraftControls";
+import { useLocalDraft } from "@/hooks/useLocalDraft";
 
 export const Route = createFileRoute("/admin/customers/$customerId")({
   component: CustomerDetail,
@@ -268,6 +270,25 @@ function Card({ title, icon: Icon, action, children }: { title: string; icon: Re
 }
 function Empty({ msg }: { msg: string }) { return <div className="py-8 text-center text-sm text-muted-foreground">{msg}</div>; }
 
+function createInitialServiceForm(cars: Car[]) {
+  return {
+    service_date: new Date().toISOString().slice(0, 10),
+    car_id: cars[0]?.id ?? "",
+    service_id: "",
+    oil_brand: "",
+    oil_type: "",
+    oil_viscosity: "",
+    filter_changed: true,
+    additives: "",
+    staff_name: "",
+    odometer_value: "",
+    odometer_unit: "km" as "km" | "mile",
+    total_amount: "",
+    notes: "",
+    customer_notes: "",
+  };
+}
+
 function CarForm({ customerId, onDone }: { customerId: string; onDone: () => void }) {
   const [form, setForm] = useState({ make: "", model: "", year: "", plate_number: "", preferred_oil: "" });
   const [saving, setSaving] = useState(false);
@@ -303,25 +324,31 @@ function ServiceForm({ customerId, cars, onDone, onError }: {
   customerId: string; cars: Car[]; onDone: (msg: string) => void; onError: (m: string) => void;
 }) {
   const { oilIntervalKm, oilReminderDays } = useReminderSettings();
-  const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({
-    service_date: today,
-    car_id: cars[0]?.id ?? "",
-    service_id: "",
-    oil_brand: "",
-    oil_type: "",
-    oil_viscosity: "",
-    filter_changed: true,
-    additives: "",
-    staff_name: "",
-    odometer_value: "",
-    odometer_unit: "km" as "km" | "mile",
-    total_amount: "",
-    notes: "",
-    customer_notes: "",
-  });
+  const [form, setForm] = useState(() => createInitialServiceForm(cars));
   const [saving, setSaving] = useState(false);
   const [catalog, setCatalog] = useState<{ id: string; name: string; price: number | null }[]>([]);
+  const initialForm = createInitialServiceForm(cars);
+  const { clearDraft, hasDraft, restored } = useLocalDraft({
+    storageKey: `daralzuyut:customer-service:draft:${customerId}`,
+    value: form,
+    onRestore: (draft) => setForm({ ...createInitialServiceForm(cars), ...draft }),
+    debounceMs: 800,
+    shouldSave: (draft) =>
+      JSON.stringify(draft) !== JSON.stringify(initialForm) &&
+      Boolean(
+        draft.car_id ||
+        draft.service_id ||
+        draft.oil_brand.trim() ||
+        draft.oil_type.trim() ||
+        draft.oil_viscosity.trim() ||
+        draft.additives.trim() ||
+        draft.staff_name.trim() ||
+        draft.odometer_value ||
+        draft.total_amount ||
+        draft.notes.trim() ||
+        draft.customer_notes.trim(),
+      ),
+  });
   useEffect(() => {
     supabase.from("services").select("id,name,price").eq("is_active", true).order("sort_order").then(({ data }) => setCatalog(data ?? []));
   }, []);
@@ -339,6 +366,15 @@ function ServiceForm({ customerId, cars, onDone, onError }: {
 
   return (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+      <DraftControls
+        restored={restored}
+        hasDraft={hasDraft}
+        className="mt-2"
+        onClear={() => {
+          clearDraft();
+          setForm(createInitialServiceForm(cars));
+        }}
+      />
       <div className="grid sm:grid-cols-2 gap-3 pt-2">
         <Field label="تاريخ الخدمة"><input type="date" className={inputCls} value={form.service_date} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></Field>
         <Field label="السيارة">
@@ -432,6 +468,7 @@ function ServiceForm({ customerId, cars, onDone, onError }: {
             });
             setSaving(false);
             if (error) { onError("تعذر حفظ الخدمة"); return; }
+            clearDraft();
             const unitLabel = form.odometer_unit === "mile" ? "ميل" : "كم";
             onDone(`تم تسجيل الخدمة. التغيير القادم عند ${nextOd?.toLocaleString()} ${unitLabel}، والتذكير بعد ${reminderDays} يوم.`);
           }}

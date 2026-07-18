@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pencil, Trash2, Loader2, Wrench, Save, X, ArrowUp, ArrowDown, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/shared/ImageUpload";
+import { DraftControls } from "@/components/shared/DraftControls";
+import { useLocalDraft } from "@/hooks/useLocalDraft";
 
 export const Route = createFileRoute("/admin/services")({
   component: ServicesCatalog,
@@ -27,6 +29,20 @@ const EMPTY: Omit<Service, "id"> = {
   icon: "", image_url: "", is_active: true, sort_order: 0,
 };
 
+function toServiceDraft(source: Partial<Service>) {
+  return {
+    name: source.name ?? "",
+    slug: source.slug ?? "",
+    description: source.description ?? "",
+    price: source.price ?? null,
+    duration_minutes: source.duration_minutes ?? null,
+    icon: source.icon ?? "",
+    image_url: source.image_url ?? "",
+    is_active: source.is_active ?? true,
+    sort_order: source.sort_order ?? 0,
+  };
+}
+
 function slugify(s: string) {
   return s.toLowerCase().trim()
     .replace(/[^\w\u0600-\u06FF\s-]/g, "")
@@ -39,6 +55,29 @@ function ServicesCatalog() {
   const [editing, setEditing] = useState<Service | (Omit<Service, "id"> & { id?: string }) | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [baseline, setBaseline] = useState<ReturnType<typeof toServiceDraft> | null>(null);
+
+  const getNewService = () => toServiceDraft({ ...EMPTY, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 });
+
+  const { clearDraft, hasDraft, restored } = useLocalDraft({
+    storageKey: `daralzuyut:service-catalog:draft:${editing?.id ?? "new"}`,
+    value: toServiceDraft(editing ?? getNewService()),
+    onRestore: (draft) => setEditing({ ...(baseline ?? getNewService()), ...draft }),
+    enabled: !!editing,
+    debounceMs: 800,
+    shouldSave: (draft) =>
+      baseline != null &&
+      JSON.stringify(draft) !== JSON.stringify(baseline) &&
+      Boolean(
+        draft.name.trim() ||
+        draft.slug.trim() ||
+        draft.description.trim() ||
+        draft.price != null ||
+        draft.duration_minutes != null ||
+        draft.icon.trim() ||
+        draft.image_url.trim(),
+      ),
+  });
 
   const load = async () => {
     setLoading(true);
@@ -49,8 +88,16 @@ function ServicesCatalog() {
 
   useEffect(() => { load(); }, []);
 
-  const openNew = () => setEditing({ ...EMPTY, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 });
-  const openEdit = (s: Service) => setEditing({ ...s });
+  const openNew = () => {
+    const next = getNewService();
+    setBaseline(next);
+    setEditing(next);
+  };
+  const openEdit = (s: Service) => {
+    const next = toServiceDraft(s);
+    setBaseline(next);
+    setEditing({ ...s });
+  };
 
   const save = async () => {
     if (!editing) return;
@@ -73,8 +120,10 @@ function ServicesCatalog() {
     } else {
       await supabase.from("services").insert(payload);
     }
+    clearDraft();
     setSaving(false);
     setEditing(null);
+    setBaseline(null);
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1500);
     load();
@@ -160,13 +209,29 @@ function ServicesCatalog() {
         {editing && (
           <motion.div className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/50 backdrop-blur-sm"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => !saving && setEditing(null)}>
+            onClick={() => {
+              if (!saving) {
+                setEditing(null);
+                setBaseline(null);
+              }
+            }}>
             <motion.div className="w-full max-w-2xl bg-card rounded-2xl border border-border shadow-elegant overflow-hidden"
               initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between p-5 border-b border-border">
                 <div className="font-extrabold text-lg">{"id" in editing && editing.id ? "تعديل خدمة" : "خدمة جديدة"}</div>
-                <button onClick={() => setEditing(null)} className="size-9 grid place-items-center rounded-lg hover:bg-muted"><X className="size-4" /></button>
+                <button onClick={() => { setEditing(null); setBaseline(null); }} className="size-9 grid place-items-center rounded-lg hover:bg-muted"><X className="size-4" /></button>
+              </div>
+              <div className="p-5 pb-0">
+                <DraftControls
+                  restored={restored}
+                  hasDraft={hasDraft}
+                  onClear={() => {
+                    clearDraft();
+                    const resetTo = baseline ?? getNewService();
+                    setEditing({ ...resetTo });
+                  }}
+                />
               </div>
               <div className="p-5 grid sm:grid-cols-2 gap-4">
                 <Lbl text="الاسم *"><input className={inp} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></Lbl>
@@ -191,7 +256,7 @@ function ServicesCatalog() {
                 </label>
               </div>
               <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-muted/30">
-                <button onClick={() => setEditing(null)} disabled={saving} className="h-11 px-5 rounded-xl border border-border bg-card font-semibold">إلغاء</button>
+                <button onClick={() => { setEditing(null); setBaseline(null); }} disabled={saving} className="h-11 px-5 rounded-xl border border-border bg-card font-semibold">إلغاء</button>
                 <button onClick={save} disabled={saving || !editing.name.trim()} className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-gold-gradient text-primary-foreground font-bold disabled:opacity-60">
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} حفظ
                 </button>

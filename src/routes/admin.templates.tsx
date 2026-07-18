@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { MessageSquare, Plus, Save, Trash2, Loader2, Power, PowerOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DraftControls } from "@/components/shared/DraftControls";
+import { useLocalDraft } from "@/hooks/useLocalDraft";
 
 export const Route = createFileRoute("/admin/templates")({
   component: Templates,
@@ -11,13 +13,22 @@ export const Route = createFileRoute("/admin/templates")({
 interface Tpl { id: string; name: string; body: string; is_active: boolean; }
 
 const PLACEHOLDERS = ["{{name}}", "{{phone}}", "{{due_date}}", "{{car}}"];
+const EMPTY_DRAFT = { name: "", body: "" };
 
 function Templates() {
   const [items, setItems] = useState<Tpl[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: "", body: "" });
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [creating, setCreating] = useState(false);
+
+  const { clearDraft, hasDraft, restored } = useLocalDraft({
+    storageKey: "daralzuyut:message-template:draft",
+    value: draft,
+    onRestore: (savedDraft) => setDraft({ ...EMPTY_DRAFT, ...savedDraft }),
+    debounceMs: 800,
+    shouldSave: (savedDraft) => Boolean(savedDraft.name.trim() || savedDraft.body.trim()),
+  });
 
   const load = async () => {
     setLoading(true);
@@ -36,6 +47,15 @@ function Templates() {
 
       <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-card">
         <div className="font-semibold mb-3 inline-flex items-center gap-2"><Plus className="size-4 text-primary" /> إنشاء قالب جديد</div>
+        <DraftControls
+          restored={restored}
+          hasDraft={hasDraft}
+          className="mb-3"
+          onClear={() => {
+            clearDraft();
+            setDraft(EMPTY_DRAFT);
+          }}
+        />
         <div className="grid sm:grid-cols-3 gap-3">
           <input className="h-11 rounded-xl border border-border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" placeholder="اسم القالب" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
           <textarea rows={2} className="sm:col-span-2 rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none" placeholder="نص الرسالة. استخدم {{name}} و {{due_date}} لتعويض البيانات." value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
@@ -51,7 +71,8 @@ function Templates() {
             onClick={async () => {
               setCreating(true);
               await supabase.from("message_templates").insert({ name: draft.name.trim(), body: draft.body.trim(), is_active: true });
-              setDraft({ name: "", body: "" }); setCreating(false); load();
+              clearDraft();
+              setDraft(EMPTY_DRAFT); setCreating(false); load();
             }}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-primary to-primary-glow text-primary-foreground font-semibold text-sm disabled:opacity-60"
           >{creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} إضافة</button>

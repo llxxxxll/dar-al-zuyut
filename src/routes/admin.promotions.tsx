@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Tag, Plus, Trash2, Edit3, X, Loader2, Eye, EyeOff, Calendar, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/shared/ImageUpload";
+import { DraftControls } from "@/components/shared/DraftControls";
+import { useLocalDraft } from "@/hooks/useLocalDraft";
 
 export const Route = createFileRoute("/admin/promotions")({
   component: AdminPromotions,
@@ -40,10 +42,52 @@ const empty: Omit<Promo, "id"> = {
   sort_order: 0,
 };
 
+function toPromoDraft(source: Partial<Promo>) {
+  return {
+    title: source.title ?? "",
+    description: source.description ?? "",
+    image_url: source.image_url ?? "",
+    discount_percent: source.discount_percent ?? null,
+    price: source.price ?? null,
+    badge: source.badge ?? "",
+    cta_label: source.cta_label ?? "",
+    cta_link: source.cta_link ?? "",
+    starts_at: source.starts_at ?? new Date().toISOString().slice(0, 10),
+    ends_at: source.ends_at ?? null,
+    is_active: source.is_active ?? true,
+    sort_order: source.sort_order ?? 0,
+  };
+}
+
 function AdminPromotions() {
   const [rows, setRows] = useState<Promo[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Promo> | null>(null);
+  const [baseline, setBaseline] = useState<ReturnType<typeof toPromoDraft> | null>(null);
+
+  const getNewPromotion = () => toPromoDraft({ ...empty, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 });
+
+  const { clearDraft, hasDraft, restored } = useLocalDraft({
+    storageKey: `daralzuyut:promotion:draft:${editing?.id ?? "new"}`,
+    value: toPromoDraft(editing ?? getNewPromotion()),
+    onRestore: (draft) => setEditing({ ...(baseline ?? getNewPromotion()), ...draft }),
+    enabled: !!editing,
+    debounceMs: 800,
+    shouldSave: (draft) =>
+      baseline != null &&
+      JSON.stringify(draft) !== JSON.stringify(baseline) &&
+      Boolean(
+        draft.title.trim() ||
+        draft.description?.trim() ||
+        draft.image_url?.trim() ||
+        draft.discount_percent != null ||
+        draft.price != null ||
+        draft.badge?.trim() ||
+        draft.cta_label?.trim() ||
+        draft.cta_link?.trim() ||
+        draft.ends_at,
+      ),
+  });
 
   const load = async () => {
     setLoading(true);
@@ -55,6 +99,7 @@ function AdminPromotions() {
 
   const save = async () => {
     if (!editing || !editing.title) return;
+    const draftKeyActive = !editing.id || hasDraft;
     const payload = {
       title: editing.title,
       description: editing.description || null,
@@ -74,7 +119,9 @@ function AdminPromotions() {
     } else {
       await supabase.from("promotions").insert(payload);
     }
+    if (draftKeyActive) clearDraft();
     setEditing(null);
+    setBaseline(null);
     load();
   };
 
@@ -96,7 +143,11 @@ function AdminPromotions() {
           <h1 className="text-3xl font-extrabold">الإعلانات والعروض</h1>
           <p className="text-muted-foreground mt-1">فقط أضف عنوانًا واحفظ — بقية الحقول اختيارية.</p>
         </div>
-        <button onClick={() => setEditing({ ...empty })}
+        <button onClick={() => {
+          const next = getNewPromotion();
+          setBaseline(next);
+          setEditing(next);
+        }}
           className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-gold-gradient text-primary-foreground font-bold shadow-elegant hover:scale-[1.02] transition">
           <Plus className="size-4" /> عرض جديد
         </button>
@@ -137,7 +188,11 @@ function AdminPromotions() {
                   {p.ends_at && ` إلى ${new Date(p.ends_at).toLocaleDateString("ar-LY")}`}
                 </div>
                 <div className="flex gap-2 mt-4 pt-4 border-t border-border">
-                  <button onClick={() => setEditing(p)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-border text-xs font-semibold hover:bg-muted/50">
+                  <button onClick={() => {
+                    const next = toPromoDraft(p);
+                    setBaseline(next);
+                    setEditing({ ...p });
+                  }} className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-border text-xs font-semibold hover:bg-muted/50">
                     <Edit3 className="size-3.5" /> تعديل
                   </button>
                   <button onClick={() => toggle(p)} className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-semibold hover:bg-muted/50">
@@ -161,8 +216,18 @@ function AdminPromotions() {
               className="bg-card rounded-2xl border border-border shadow-elegant max-w-2xl w-full p-6 my-8">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-extrabold text-xl">{editing.id ? "تعديل عرض" : "عرض جديد"}</h3>
-                <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
+                <button onClick={() => { setEditing(null); setBaseline(null); }} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
               </div>
+              <DraftControls
+                restored={restored}
+                hasDraft={hasDraft}
+                className="mb-4"
+                onClear={() => {
+                  clearDraft();
+                  const resetTo = baseline ?? getNewPromotion();
+                  setEditing({ ...resetTo });
+                }}
+              />
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="العنوان *">
                   <input value={editing.title || ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className={inp} />
@@ -213,7 +278,7 @@ function AdminPromotions() {
                 </div>
               </div>
               <div className="flex gap-2 justify-end mt-6">
-                <button onClick={() => setEditing(null)} className="h-11 px-5 rounded-full border border-border font-semibold hover:bg-muted/50">إلغاء</button>
+                <button onClick={() => { setEditing(null); setBaseline(null); }} className="h-11 px-5 rounded-full border border-border font-semibold hover:bg-muted/50">إلغاء</button>
                 <button onClick={save} disabled={!editing.title} className="h-11 px-6 rounded-full bg-gold-gradient text-primary-foreground font-bold shadow-elegant disabled:opacity-50">
                   حفظ
                 </button>

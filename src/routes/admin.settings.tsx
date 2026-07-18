@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Settings as SettingsIcon, Save, Loader2, Gauge, MessageSquare, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DraftControls } from "@/components/shared/DraftControls";
+import { useLocalDraft } from "@/hooks/useLocalDraft";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettings,
@@ -48,11 +50,22 @@ const DEFAULTS: SettingsState = {
 
 function AdminSettings() {
   const [state, setState] = useState<SettingsState>(DEFAULTS);
+  const [loadedState, setLoadedState] = useState<SettingsState | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [smsConfigured, setSmsConfigured] = useState<boolean | null>(null);
   const [smsSender, setSmsSender] = useState<string>("");
+
+  const { clearDraft, hasDraft, restored } = useLocalDraft({
+    storageKey: "daralzuyut:settings:draft",
+    value: state,
+    onRestore: (draft) => setState((prev) => ({ ...prev, ...draft })),
+    enabled: !loading,
+    ready: !loading,
+    debounceMs: 1000,
+    shouldSave: (draft) => loadedState != null && JSON.stringify(draft) !== JSON.stringify(loadedState),
+  });
 
   useEffect(() => {
     (async () => {
@@ -75,6 +88,7 @@ function AdminSettings() {
         }
       });
       setState(next);
+      setLoadedState(next);
       setLoading(false);
       // Probe SMS provider status
       try {
@@ -93,6 +107,8 @@ function AdminSettings() {
     const rows = Object.entries(state).map(([key, value]) => ({ key, value: { v: value }, description: null, updated_at: new Date().toISOString() }));
     await supabase.from("app_settings").upsert(rows, { onConflict: "key" });
     setSaving(false);
+    clearDraft();
+    setLoadedState(state);
     setSavedAt(new Date());
   };
 
@@ -208,6 +224,15 @@ function AdminSettings() {
           <Field label="TikTok"><input className={inputCls} dir="ltr" value={state.socials_tiktok} onChange={(e) => setState({ ...state, socials_tiktok: e.target.value })} /></Field>
         </div>
       </div>
+
+      <DraftControls
+        restored={restored}
+        hasDraft={hasDraft}
+        onClear={() => {
+          clearDraft();
+          setState(loadedState ?? DEFAULTS);
+        }}
+      />
 
       <div className="flex items-center justify-between gap-4">
         {savedAt && <div className="text-xs text-emerald-600">تم الحفظ ✓</div>}

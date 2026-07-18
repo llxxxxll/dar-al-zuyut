@@ -4,6 +4,8 @@ import { Search, Save, Loader2, CheckCircle2, AlertCircle, Zap, User, Car as Car
 import { supabase } from "@/integrations/supabase/client";
 import { OIL_CHANGE_KM, OIL_REMINDER_DAYS } from "@/lib/reminder";
 import { useReminderSettings } from "@/hooks/useAppSettings";
+import { DraftControls } from "@/components/shared/DraftControls";
+import { useLocalDraft } from "@/hooks/useLocalDraft";
 
 export const Route = createFileRoute("/admin/quick-service")({
   component: QuickService,
@@ -11,6 +13,18 @@ export const Route = createFileRoute("/admin/quick-service")({
 
 interface Customer { id: string; full_name: string | null; phone: string | null; }
 interface Car { id: string; make: string; model: string | null; plate_number: string | null; odometer_value: number | null; odometer_unit: string | null; }
+const EMPTY_QUICK_SERVICE_DRAFT = {
+  q: "",
+  customer: null as Customer | null,
+  carId: "",
+  odometer: "",
+  unit: "km" as "km" | "mile",
+  showMore: false,
+  oilBrand: "",
+  oilType: "",
+  filterChanged: true,
+  amount: "",
+};
 
 function QuickService() {
   const navigate = useNavigate();
@@ -30,6 +44,66 @@ function QuickService() {
   const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+
+  const loadCarsForCustomer = async (customerId: string, preferredCarId?: string) => {
+    const { data } = await supabase.from("cars")
+      .select("id,make,model,plate_number,odometer_value,odometer_unit")
+      .eq("user_id", customerId).order("created_at", { ascending: false });
+    const list = (data ?? []) as Car[];
+    setCars(list);
+    const selected = (preferredCarId && list.find((car) => car.id === preferredCarId)) || list[0];
+    setCarId(selected?.id ?? "");
+    setUnit((selected?.odometer_unit as "km" | "mile") || "km");
+    return list;
+  };
+
+  const quickDraft = {
+    q,
+    customer,
+    carId,
+    odometer,
+    unit,
+    showMore,
+    oilBrand,
+    oilType,
+    filterChanged,
+    amount,
+  };
+
+  const { clearDraft, hasDraft, restored } = useLocalDraft({
+    storageKey: "daralzuyut:quick-service:draft",
+    value: quickDraft,
+    onRestore: (draft) => {
+      setQ(draft.q ?? EMPTY_QUICK_SERVICE_DRAFT.q);
+      setOdometer(draft.odometer ?? EMPTY_QUICK_SERVICE_DRAFT.odometer);
+      setUnit(draft.unit ?? EMPTY_QUICK_SERVICE_DRAFT.unit);
+      setShowMore(draft.showMore ?? EMPTY_QUICK_SERVICE_DRAFT.showMore);
+      setOilBrand(draft.oilBrand ?? EMPTY_QUICK_SERVICE_DRAFT.oilBrand);
+      setOilType(draft.oilType ?? EMPTY_QUICK_SERVICE_DRAFT.oilType);
+      setFilterChanged(draft.filterChanged ?? EMPTY_QUICK_SERVICE_DRAFT.filterChanged);
+      setAmount(draft.amount ?? EMPTY_QUICK_SERVICE_DRAFT.amount);
+      if (draft.customer) {
+        setCustomer(draft.customer);
+        setQ(draft.customer.full_name || draft.customer.phone || draft.q || "");
+        void loadCarsForCustomer(draft.customer.id, draft.carId).then(() => {
+          setCarId(draft.carId || "");
+          setUnit(draft.unit ?? EMPTY_QUICK_SERVICE_DRAFT.unit);
+        });
+      }
+    },
+    debounceMs: 800,
+    shouldSave: (draft) =>
+      Boolean(
+        draft.q.trim() ||
+        draft.customer?.id ||
+        draft.carId ||
+        draft.odometer ||
+        draft.oilBrand.trim() ||
+        draft.oilType.trim() ||
+        draft.amount ||
+        draft.showMore,
+      ),
+  });
 
   // Live search
   useEffect(() => {
@@ -60,17 +134,21 @@ function QuickService() {
 
   const pickCustomer = async (c: Customer) => {
     setCustomer(c); setResults([]); setQ(c.full_name || c.phone || "");
-    const { data } = await supabase.from("cars")
-      .select("id,make,model,plate_number,odometer_value,odometer_unit")
-      .eq("user_id", c.id).order("created_at", { ascending: false });
-    const list = (data ?? []) as Car[];
-    setCars(list);
-    if (list[0]) { setCarId(list[0].id); setUnit((list[0].odometer_unit as "km" | "mile") || "km"); }
+    await loadCarsForCustomer(c.id);
   };
 
   const reset = () => {
-    setCustomer(null); setCars([]); setCarId(""); setOdometer(""); setQ("");
-    setOilBrand(""); setOilType(""); setAmount(""); setShowMore(false);
+    setCustomer(EMPTY_QUICK_SERVICE_DRAFT.customer);
+    setCars([]);
+    setCarId(EMPTY_QUICK_SERVICE_DRAFT.carId);
+    setOdometer(EMPTY_QUICK_SERVICE_DRAFT.odometer);
+    setQ(EMPTY_QUICK_SERVICE_DRAFT.q);
+    setUnit(EMPTY_QUICK_SERVICE_DRAFT.unit);
+    setOilBrand(EMPTY_QUICK_SERVICE_DRAFT.oilBrand);
+    setOilType(EMPTY_QUICK_SERVICE_DRAFT.oilType);
+    setFilterChanged(EMPTY_QUICK_SERVICE_DRAFT.filterChanged);
+    setAmount(EMPTY_QUICK_SERVICE_DRAFT.amount);
+    setShowMore(EMPTY_QUICK_SERVICE_DRAFT.showMore);
   };
 
   const selectedCar = cars.find((c) => c.id === carId);
@@ -107,6 +185,7 @@ function QuickService() {
       kind: "ok",
       msg: `تم التسجيل. القادم عند ${nextOd?.toLocaleString()} ${unit === "mile" ? "ميل" : "كم"} — تذكير بعد ${reminderDays} يوم.`,
     });
+    clearDraft();
     setTimeout(() => { setStatus(null); reset(); }, 3500);
   };
 
@@ -128,6 +207,15 @@ function QuickService() {
           {status.kind === "ok" ? <CheckCircle2 className="size-5" /> : <AlertCircle className="size-5" />} {status.msg}
         </div>
       )}
+
+      <DraftControls
+        restored={restored}
+        hasDraft={hasDraft}
+        onClear={() => {
+          clearDraft();
+          reset();
+        }}
+      />
 
       {/* Step 1: customer */}
       <div className="rounded-2xl border border-border bg-card p-5 space-y-3">

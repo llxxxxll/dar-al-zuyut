@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Megaphone, Plus, Send, Loader2, Bell, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DraftControls } from "@/components/shared/DraftControls";
+import { useLocalDraft } from "@/hooks/useLocalDraft";
 
 export const Route = createFileRoute("/admin/broadcasts")({
   component: Broadcasts,
@@ -24,6 +26,16 @@ interface Broadcast {
 
 const inputCls = "w-full h-11 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30";
 const ta = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30";
+const DEFAULT_FORM = {
+  title: "",
+  body: "",
+  link_url: "",
+  target_type: "all_customers",
+  send_in_app: true,
+  send_sms: false,
+  send_whatsapp: false,
+  scheduled_at: "",
+};
 
 function Broadcasts() {
   const [list, setList] = useState<Broadcast[]>([]);
@@ -31,11 +43,25 @@ function Broadcasts() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    title: "", body: "", link_url: "",
-    target_type: "all_customers",
-    send_in_app: true, send_sms: false, send_whatsapp: false,
-    scheduled_at: "",
+  const [form, setForm] = useState(DEFAULT_FORM);
+
+  const { clearDraft, hasDraft, restored } = useLocalDraft({
+    storageKey: "daralzuyut:broadcast:draft",
+    value: form,
+    onRestore: (draft) => setForm({ ...DEFAULT_FORM, ...draft }),
+    enabled: showForm,
+    debounceMs: 800,
+    shouldSave: (draft) =>
+      Boolean(
+        draft.title.trim() ||
+        draft.body.trim() ||
+        draft.link_url.trim() ||
+        draft.scheduled_at ||
+        draft.target_type !== DEFAULT_FORM.target_type ||
+        draft.send_in_app !== DEFAULT_FORM.send_in_app ||
+        draft.send_sms ||
+        draft.send_whatsapp,
+      ),
   });
 
   const load = async () => {
@@ -64,8 +90,9 @@ function Broadcasts() {
     });
     setSaving(false);
     if (!error) {
+      clearDraft();
       setShowForm(false);
-      setForm({ title: "", body: "", link_url: "", target_type: "all_customers", send_in_app: true, send_sms: false, send_whatsapp: false, scheduled_at: "" });
+      setForm(DEFAULT_FORM);
       load();
     }
   };
@@ -117,6 +144,14 @@ function Broadcasts() {
 
       {showForm && (
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+          <DraftControls
+            restored={restored}
+            hasDraft={hasDraft}
+            onClear={() => {
+              clearDraft();
+              setForm(DEFAULT_FORM);
+            }}
+          />
           <input className={inputCls} placeholder="العنوان" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <textarea rows={3} className={ta} placeholder="النص…" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
           <div className="grid sm:grid-cols-2 gap-3">
