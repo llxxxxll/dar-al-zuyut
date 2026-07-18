@@ -91,7 +91,7 @@ export function AppointmentBooking({ userId, cars }: { userId: string; cars: Car
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       {msg && (
         <div className={`mb-4 flex items-start gap-3 p-4 rounded-xl border text-sm ${
           msg.kind === "ok" ? "bg-success/10 border-success/30 text-success" : "bg-destructive/10 border-destructive/30 text-destructive"
@@ -112,9 +112,9 @@ export function AppointmentBooking({ userId, cars }: { userId: string; cars: Car
 
       {showForm && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden mb-6">
-          <div className="p-5 rounded-2xl bg-secondary/40 border border-border space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-lg">حجز موعد</h3>
+          <div className="min-w-0 space-y-4 rounded-2xl border border-border bg-secondary/40 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="min-w-0 text-lg font-extrabold">حجز موعد</h3>
               <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-card">
                 <X className="h-4 w-4" />
               </button>
@@ -201,7 +201,7 @@ export function AppointmentBooking({ userId, cars }: { userId: string; cars: Car
             const slotL = SLOTS.find((s) => s.v === a.time_slot)?.l ?? a.time_slot;
             const svcL = services.find((s) => s.id === a.service_id)?.name ?? a.service_type;
             return (
-              <div key={a.id} className="p-4 rounded-2xl border border-border bg-card flex items-start justify-between gap-3">
+              <div key={a.id} className="flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <div className="size-11 rounded-xl bg-gold-soft border border-primary/20 grid place-items-center shrink-0">
                     <Wrench className="h-5 w-5 text-primary" />
@@ -223,7 +223,7 @@ export function AppointmentBooking({ userId, cars }: { userId: string; cars: Car
                 {(a.status === "pending" || a.status === "confirmed") && (
                   <button
                     onClick={() => cancel(a.id)}
-                    className="text-xs font-bold text-destructive hover:underline shrink-0"
+                    className="shrink-0 text-right text-xs font-bold text-destructive hover:underline sm:text-left"
                   >
                     إلغاء
                   </button>

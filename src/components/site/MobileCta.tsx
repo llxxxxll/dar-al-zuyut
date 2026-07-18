@@ -3,8 +3,8 @@ import { Link } from "@tanstack/react-router";
 
 export function MobileCta() {
   return (
-    <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border shadow-[0_-8px_30px_-8px_rgba(0,0,0,0.15)]">
-      <div className="grid grid-cols-3 gap-1 p-2">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 shadow-[0_-8px_30px_-8px_rgba(0,0,0,0.15)] backdrop-blur-xl lg:hidden">
+      <div className="mx-auto grid w-full max-w-screen-sm grid-cols-3 gap-1 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         <a
           href="tel:0927527000"
           className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-gold-gradient text-primary-foreground font-bold text-xs shadow-elegant"

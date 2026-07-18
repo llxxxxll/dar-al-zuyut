@@ -26,7 +26,7 @@ export function ServiceTimeline({ services }: { services: ServiceItem[] }) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0 overflow-hidden">
       {/* Vertical line */}
       <div className="absolute right-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-primary/40 via-border to-transparent" />
 
@@ -37,7 +37,7 @@ export function ServiceTimeline({ services }: { services: ServiceItem[] }) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="relative pr-12"
+            className="relative min-w-0 pr-12"
           >
             {/* Dot */}
             <div className={`absolute right-0 top-2 size-10 rounded-xl grid place-items-center ring-4 ring-background ${
@@ -47,13 +47,13 @@ export function ServiceTimeline({ services }: { services: ServiceItem[] }) {
             </div>
 
             {/* Card */}
-            <div className={`rounded-2xl border p-4 ${
+            <div className={`min-w-0 overflow-hidden rounded-2xl border p-4 ${
               i === 0 ? "bg-gradient-to-l from-primary/5 to-card border-primary/30 shadow-soft" : "bg-card border-border"
             }`}>
               <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h4 className="font-extrabold">{s.oil_type || "تغيير زيت"}</h4>
+                    <h4 className="break-words font-extrabold">{s.oil_type || "تغيير زيت"}</h4>
                     {i === 0 && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
                         الأحدث

@@ -29,16 +29,16 @@ export function CountdownRing({ daysLeft, dueDate, totalDays, isEstimate }: Prop
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="relative overflow-hidden rounded-3xl bg-onyx text-white p-6 md:p-8 border border-white/10 shadow-elegant"
+      className="relative w-full max-w-full overflow-hidden rounded-3xl border border-white/10 bg-onyx p-4 text-white shadow-elegant sm:p-6 md:p-8"
     >
       <div className="absolute inset-0 bg-oil-radial opacity-50" />
       <div className={`absolute -top-24 -left-24 size-72 rounded-full bg-gradient-to-br ${palette.glow} to-transparent blur-3xl`} />
       <div className={`absolute -bottom-24 -right-24 size-64 rounded-full bg-gradient-to-tr ${palette.glow} to-transparent blur-3xl`} />
 
-      <div className="relative grid md:grid-cols-[auto_1fr] items-center gap-8">
+      <div className="relative flex min-w-0 flex-col gap-6 md:flex-row md:items-center md:gap-8">
         {/* Ring */}
-        <div className="relative mx-auto md:mx-0">
-          <svg width="220" height="220" viewBox="0 0 220 220" className="-rotate-90">
+        <div className="relative mx-auto shrink-0 md:mx-0">
+          <svg viewBox="0 0 220 220" className="size-40 sm:size-48 md:size-56 -rotate-90">
             <defs>
               <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="oklch(0.85 0.16 82)" />
@@ -58,19 +58,19 @@ export function CountdownRing({ daysLeft, dueDate, totalDays, isEstimate }: Prop
               transition={{ duration: 1.4, ease: "easeOut" }}
             />
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <div className="absolute inset-0 flex min-w-0 flex-col items-center justify-center text-center">
             {dueDate === null ? (
               <div className="text-white/60 text-sm">لا يوجد تذكير</div>
             ) : overdue ? (
               <>
-                <div className="text-5xl font-black tabular-nums leading-none">{Math.abs(daysLeft!)}</div>
+                <div className="text-2xl font-black leading-none tabular-nums sm:text-3xl md:text-4xl">{Math.abs(daysLeft!)}</div>
                 <div className="text-xs text-rose-300 mt-1.5">يوم متأخر</div>
               </>
             ) : daysLeft === 0 ? (
-              <div className="text-2xl font-black">اليوم!</div>
+              <div className="text-2xl font-black sm:text-3xl md:text-4xl">اليوم!</div>
             ) : (
               <>
-                <div className="text-6xl font-black tabular-nums leading-none">{daysLeft}</div>
+                <div className="text-2xl font-black leading-none tabular-nums sm:text-3xl md:text-4xl">{daysLeft}</div>
                 <div className="text-xs text-white/60 mt-1.5">يوم متبقّي</div>
               </>
             )}
@@ -78,19 +78,19 @@ export function CountdownRing({ daysLeft, dueDate, totalDays, isEstimate }: Prop
         </div>
 
         {/* Info */}
-        <div>
-          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${palette.chip} ${palette.chipText} text-xs font-bold mb-3`}>
+        <div className="min-w-0 flex-1 text-center md:text-right">
+          <div className={`mb-3 inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${palette.chip} ${palette.chipText} md:justify-start`}>
             {overdue ? <AlertTriangle className="size-3.5" /> : soon ? <Clock className="size-3.5" /> : <Bell className="size-3.5" />}
             {overdue ? "تجاوزت الموعد" : soon ? "قريباً جداً" : "كل شيء على ما يرام"}
             {isEstimate && <span className="opacity-80">(تقديري)</span>}
           </div>
 
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-2 text-white">
+          <h2 className="mb-2 min-w-0 break-words text-2xl font-extrabold leading-tight text-white sm:text-3xl md:text-4xl">
             {overdue ? "حان وقت تغيير الزيت" : daysLeft === 0 ? "اليوم موعد التغيير" : "موعد تغيير الزيت القادم"}
           </h2>
 
           {dueDate && (
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/65 mb-5">
+            <div className="mb-5 flex min-w-0 flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-white/65 md:justify-start">
               <span className="inline-flex items-center gap-1.5">
                 <Calendar className="size-4 text-primary" /> {formatArDate(dueDate)}
               </span>
@@ -102,12 +102,12 @@ export function CountdownRing({ daysLeft, dueDate, totalDays, isEstimate }: Prop
 
           {/* Progress strip */}
           {dueDate && (
-            <div>
+            <div className="w-full max-w-full min-w-0">
               <div className="flex justify-between text-[11px] text-white/55 mb-1.5">
                 <span>التقدّم</span>
                 <span className="tabular-nums">{Math.round(progress)}%</span>
               </div>
-              <div className="h-2.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-2.5 w-full max-w-full overflow-hidden rounded-full bg-white/10">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}

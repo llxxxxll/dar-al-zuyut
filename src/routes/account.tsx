@@ -140,22 +140,26 @@ function Account() {
   return (
     <SiteLayout>
       {/* Personal hero */}
-      <section className="relative overflow-hidden pt-12 pb-8">
+      <section className="relative overflow-x-hidden overflow-y-visible pt-8 pb-6 md:pt-12 md:pb-8">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
         <div className="absolute top-10 -right-20 w-72 h-72 rounded-full bg-primary/10 blur-3xl -z-10" />
-        <div className="container mx-auto px-4 md:px-8 max-w-5xl">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-5">
+        <div className="container mx-auto max-w-5xl min-w-0 px-4 md:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid min-w-0 grid-cols-[auto_1fr] items-center gap-4 md:flex md:flex-wrap md:items-center md:gap-5"
+          >
             <div className="size-16 rounded-2xl bg-gold-gradient grid place-items-center text-primary-foreground text-2xl font-extrabold shadow-elegant">
               {(profile.full_name?.trim()?.[0] ?? "؟")}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm text-muted-foreground">حسابي</div>
               <h1 className="text-3xl md:text-4xl font-extrabold mt-0.5 truncate">أهلاً، {profile.full_name || "بك"}</h1>
-              <div className="text-sm text-muted-foreground mt-1" dir="ltr">{profile.phone}</div>
+              <div className="mt-1 truncate text-sm text-muted-foreground" dir="ltr">{profile.phone}</div>
             </div>
             <button
               onClick={() => signOut()}
-              className="inline-flex items-center gap-2 px-4 h-11 rounded-full border border-destructive/30 text-destructive font-semibold hover:bg-destructive/5 transition"
+              className="col-span-2 md:col-span-1 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-destructive/30 px-4 font-semibold text-destructive transition hover:bg-destructive/5 md:ms-auto md:w-auto"
             >
               <LogOut className="h-4 w-4" /> خروج
             </button>
@@ -175,11 +179,11 @@ function Account() {
         )}
       </AnimatePresence>
 
-      <section className="pb-20">
-        <div className="container mx-auto px-4 md:px-8 max-w-5xl">
+      <section className="overflow-x-hidden pb-[calc(120px+env(safe-area-inset-bottom))]">
+        <div className="container mx-auto max-w-5xl min-w-0 overflow-x-hidden px-4 md:px-8">
           {/* Tabs */}
-          <div className="overflow-x-auto -mx-4 px-4 pb-2 mb-6">
-            <div className="inline-flex gap-1.5 p-1.5 rounded-2xl bg-secondary/60 border border-border min-w-full md:min-w-0">
+          <div className="mb-6 -mx-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max min-w-full gap-1.5 rounded-2xl border border-border bg-secondary/60 p-1.5 md:w-auto">
               {tabs.map((t) => (
                 <button
                   key={t.v}
@@ -201,7 +205,7 @@ function Account() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="min-w-0 space-y-6 overflow-x-hidden"
             >
               {tab === "overview" && (
                 <>
@@ -215,7 +219,7 @@ function Account() {
                   ) : (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                      className="rounded-3xl border border-dashed border-primary/30 bg-gradient-to-br from-secondary/40 to-card p-6 md:p-8 text-center shadow-card"
+                      className="min-w-0 overflow-hidden rounded-3xl border border-dashed border-primary/30 bg-gradient-to-br from-secondary/40 to-card p-6 text-center shadow-card md:p-8"
                     >
                       <div className="size-14 mx-auto rounded-2xl bg-secondary grid place-items-center mb-4">
                         <Wrench className="h-6 w-6 text-primary" />
@@ -238,7 +242,7 @@ function Account() {
                   </div>
 
                   <Panel title="إجراءات سريعة" icon={Sparkles}>
-                    <div className="grid sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <QuickAction icon={Calendar} label="احجز موعد" desc="حدّد تاريخ مناسب لك" onClick={() => setTab("appointments")} />
                       <QuickAction icon={Plus} label="أضف سيارة" desc="لمتابعة أفضل" onClick={() => { setTab("cars"); setShowCarForm(true); }} />
                       <QuickAction icon={Star} label="قيّم خدمة" desc="شاركنا رأيك" onClick={() => setTab("reviews")} />
@@ -351,7 +355,7 @@ function Account() {
                     <div className="grid sm:grid-cols-2 gap-3 mt-4">
                       {cars.map((c) => (
                         <motion.div key={c.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                          className="p-4 rounded-2xl bg-secondary/40 border border-border flex items-start justify-between gap-3 group hover:border-primary/30 transition">
+                          className="group flex min-w-0 items-start justify-between gap-3 rounded-2xl border border-border bg-secondary/40 p-4 transition hover:border-primary/30">
                           <div className="flex items-start gap-3 min-w-0">
                             <div className="size-11 rounded-xl bg-gold-gradient grid place-items-center shrink-0">
                               <CarIcon className="h-5 w-5 text-primary-foreground" />
@@ -436,9 +440,9 @@ function FieldWrap({ label, icon: Icon, children }: { label: string; icon: React
 function Panel({ title, icon: Icon, action, children }: { title: string; icon: React.ComponentType<{ className?: string }>; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-      className="bg-card rounded-3xl shadow-card border border-border p-6 md:p-7">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="inline-flex items-center gap-2 font-extrabold text-lg"><Icon className="h-4 w-4 text-primary" /> {title}</div>
+      className="min-w-0 overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-card sm:p-5 md:p-7">
+      <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex min-w-0 items-center gap-2 text-lg font-extrabold"><Icon className="h-4 w-4 shrink-0 text-primary" /> <span className="truncate">{title}</span></div>
         {action}
       </div>
       {children}
@@ -448,12 +452,12 @@ function Panel({ title, icon: Icon, action, children }: { title: string; icon: R
 
 function Stat({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
   return (
-    <div className="rounded-2xl p-4 border border-border bg-card shadow-card">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-card">
       <div className="flex items-center gap-3 mb-1.5">
         <div className="size-9 rounded-xl bg-secondary grid place-items-center"><Icon className="h-4 w-4 text-primary" /></div>
         <div className="text-xs text-muted-foreground">{label}</div>
       </div>
-      <div className="text-base font-extrabold">{value}</div>
+      <div className="truncate text-base font-extrabold">{value}</div>
     </div>
   );
 }
@@ -462,14 +466,14 @@ function QuickAction({ icon: Icon, label, desc, onClick }: { icon: React.Compone
   return (
     <button
       onClick={onClick}
-      className="text-right p-4 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/60 hover:border-primary/30 transition-all flex items-center gap-3 group"
+      className="group flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border bg-secondary/30 p-4 text-right transition-all hover:border-primary/30 hover:bg-secondary/60"
     >
       <div className="size-12 rounded-xl bg-gold-gradient grid place-items-center shadow-elegant group-hover:scale-110 transition-transform">
         <Icon className="h-5 w-5 text-primary-foreground" />
       </div>
-      <div>
-        <div className="font-bold">{label}</div>
-        <div className="text-xs text-muted-foreground">{desc}</div>
+      <div className="min-w-0">
+        <div className="truncate font-bold">{label}</div>
+        <div className="truncate text-xs text-muted-foreground">{desc}</div>
       </div>
     </button>
   );
@@ -551,9 +555,9 @@ function OdometerCard({ car, onUpdate, flash }: { car: Car; onUpdate: () => void
   };
 
   return (
-    <div className="rounded-2xl p-4 border border-border bg-secondary/30">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="font-bold truncate">{car.make} {car.model ?? ""}</div>
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-secondary/30 p-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0 font-bold truncate">{car.make} {car.model ?? ""}</div>
         {overdueKm ? (
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">⚠ متجاوز موعد التغيير</span>
         ) : overdue ? (
@@ -562,20 +566,20 @@ function OdometerCard({ car, onUpdate, flash }: { car: Car; onUpdate: () => void
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">متبقي {remainingKm.toLocaleString("ar-LY")} كم</span>
         ) : null}
       </div>
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div><div className="text-muted-foreground">قراءة العدّاد الحالية</div><div className="font-bold">{car.odometer_value?.toLocaleString("ar-LY") ?? "—"}</div></div>
-        <div><div className="text-muted-foreground">عدّاد آخر خدمة</div><div className="font-bold">{car.last_service_odometer?.toLocaleString("ar-LY") ?? "—"}</div></div>
-        <div><div className="text-muted-foreground">العدّاد القادم</div><div className="font-bold text-primary">{car.next_service_odometer?.toLocaleString("ar-LY") ?? "—"}</div></div>
+      <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
+        <div className="min-w-0"><div className="text-muted-foreground">قراءة العدّاد الحالية</div><div className="font-bold">{car.odometer_value?.toLocaleString("ar-LY") ?? "—"}</div></div>
+        <div className="min-w-0"><div className="text-muted-foreground">عدّاد آخر خدمة</div><div className="font-bold">{car.last_service_odometer?.toLocaleString("ar-LY") ?? "—"}</div></div>
+        <div className="min-w-0"><div className="text-muted-foreground">العدّاد القادم</div><div className="font-bold text-primary">{car.next_service_odometer?.toLocaleString("ar-LY") ?? "—"}</div></div>
       </div>
       {editing ? (
         <div className="mt-3 space-y-2">
           <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] p-2 leading-relaxed">
             هذه القراءة للمتابعة فقط ولا تعني تسجيل تغيير زيت. تسجيل تغيير الزيت يتم من الموظف عند الزيارة.
           </div>
-          <div className="flex gap-2">
-            <input type="number" min={car.last_service_odometer ?? car.odometer_value ?? 0} value={value} onChange={(e) => setValue(e.target.value)} className={`${inputCls} h-10`} placeholder="القراءة الحالية" />
-            <button disabled={saving} onClick={save} className="h-10 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">{saving ? "..." : "حفظ"}</button>
-            <button onClick={() => setEditing(false)} className="h-10 px-3 rounded-lg border border-border text-xs">إلغاء</button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input type="number" min={car.last_service_odometer ?? car.odometer_value ?? 0} value={value} onChange={(e) => setValue(e.target.value)} className={`${inputCls} h-10 w-full`} placeholder="القراءة الحالية" />
+            <button disabled={saving} onClick={save} className="h-10 rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground disabled:opacity-50">{saving ? "..." : "حفظ"}</button>
+            <button onClick={() => setEditing(false)} className="h-10 rounded-lg border border-border px-3 text-xs">إلغاء</button>
           </div>
         </div>
       ) : (
