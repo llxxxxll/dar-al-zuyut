@@ -5,8 +5,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const DISMISS_KEY = "pwa_install_dismissed";
-const INSTALLED_KEY = "pwa_installed";
+const DISMISS_KEY = "daralzuyut:pwa-install-ack";
+const INSTALLED_KEY = "daralzuyut:pwa-installed";
 
 export function usePwaInstall() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
@@ -24,12 +24,10 @@ export function usePwaInstall() {
     setIsStandalone(standalone);
 
     const ua = window.navigator.userAgent.toLowerCase();
-    const ios = /iphone|ipad|ipod/.test(ua) && !/crios|fxios|edgios/.test(ua) === false
-      ? /iphone|ipad|ipod/.test(ua)
-      : /iphone|ipad|ipod/.test(ua);
+    const ios = /iphone|ipad|ipod/.test(ua) && !/crios|fxios|edgios/.test(ua);
     setIsIOS(ios);
 
-    if (standalone || localStorage.getItem(INSTALLED_KEY) === "1") {
+    if (standalone || localStorage.getItem(INSTALLED_KEY) === "true") {
       setInstalled(true);
     }
 
@@ -38,7 +36,7 @@ export function usePwaInstall() {
       setDeferred(e as BeforeInstallPromptEvent);
     };
     const onInstalled = () => {
-      localStorage.setItem(INSTALLED_KEY, "1");
+      localStorage.setItem(INSTALLED_KEY, "true");
       setInstalled(true);
       setDeferred(null);
     };
@@ -52,7 +50,7 @@ export function usePwaInstall() {
   }, []);
 
   const dismissed =
-    typeof window !== "undefined" && localStorage.getItem(DISMISS_KEY) === "1";
+    typeof window !== "undefined" && localStorage.getItem(DISMISS_KEY) === "true";
 
   const promptInstall = useCallback(async () => {
     if (!deferred) return "unavailable" as const;
@@ -60,7 +58,7 @@ export function usePwaInstall() {
     const choice = await deferred.userChoice;
     setDeferred(null);
     if (choice.outcome === "accepted") {
-      localStorage.setItem(INSTALLED_KEY, "1");
+      localStorage.setItem(INSTALLED_KEY, "true");
       setInstalled(true);
       return "accepted" as const;
     }
@@ -68,7 +66,7 @@ export function usePwaInstall() {
   }, [deferred]);
 
   const dismiss = useCallback(() => {
-    if (typeof window !== "undefined") localStorage.setItem(DISMISS_KEY, "1");
+    if (typeof window !== "undefined") localStorage.setItem(DISMISS_KEY, "true");
   }, []);
 
   const isMobile =

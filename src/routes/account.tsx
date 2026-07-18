@@ -16,7 +16,7 @@ import { AppointmentBooking } from "@/components/account/AppointmentBooking";
 import { ReviewForm } from "@/components/account/ReviewForm";
 import { CountdownRing } from "@/components/account/CountdownRing";
 import { ServiceTimeline } from "@/components/account/ServiceTimeline";
-import { InstallAppPrompt } from "@/components/pwa/InstallAppPrompt";
+
 
 export const Route = createFileRoute("/account")({
   component: Account,
@@ -692,7 +692,7 @@ function Account() {
           </div>
         </div>
       </section>
-      <InstallAppPrompt />
+
     </SiteLayout>
   );
 }
