@@ -34,8 +34,17 @@ interface Car {
 interface LoyaltyCard { id: string; card_code: string; discount_percent: number; status: string; expires_at: string | null; }
 interface ServiceRow { id: string; service_date: string; oil_type: string | null; filter_changed: boolean | null; staff_name: string | null; }
 interface AccountPromo { id: string; title: string; description: string | null; image_url: string | null; discount_percent: number | null; price: number | null; badge: string | null; cta_label: string | null; cta_link: string | null; ends_at: string | null; }
+interface AccountNotification {
+  id: string;
+  title: string;
+  body: string | null;
+  link_to: string | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
 
-type Tab = "overview" | "cars" | "services" | "appointments" | "reviews" | "profile";
+type Tab = "overview" | "cars" | "services" | "appointments" | "reviews" | "notifications" | "profile";
 
 function Account() {
   const navigate = useNavigate();
@@ -51,6 +60,26 @@ function Account() {
   const [showCarForm, setShowCarForm] = useState(false);
   const [loyaltyCards, setLoyaltyCards] = useState<LoyaltyCard[]>([]);
   const [promos, setPromos] = useState<AccountPromo[]>([]);
+  const [notifications, setNotifications] = useState<AccountNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+
+  const loadNotifications = async () => {
+    if (!user) {
+      setNotifications([]);
+      setNotificationsLoading(false);
+      return;
+    }
+
+    setNotificationsLoading(true);
+    const { data } = await supabase
+      .from("notifications")
+      .select("id,title,body,link_to,is_read,read_at,created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    setNotifications((data ?? []) as AccountNotification[]);
+    setNotificationsLoading(false);
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/join", search: { mode: "login" } as never });
@@ -78,11 +107,51 @@ function Account() {
     setLoyaltyCards((lc ?? []) as LoyaltyCard[]);
     setPromos((pr ?? []) as AccountPromo[]);
   };
-  useEffect(() => { refresh(); }, [user]);
+  useEffect(() => {
+    refresh();
+    loadNotifications();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`account-notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => loadNotifications(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const flash = (kind: "ok" | "err", msg: string) => {
     setToast({ kind, msg });
     setTimeout(() => setToast(null), 2500);
+  };
+
+  const unreadNotificationsCount = notifications.filter((item) => !item.is_read).length;
+
+  const markNotificationsAsRead = async (ids?: string[]) => {
+    if (!user) return;
+
+    const unreadIds = (ids ?? notifications.filter((item) => !item.is_read).map((item) => item.id)).filter(Boolean);
+    if (unreadIds.length === 0) return;
+
+    const readAt = new Date().toISOString();
+    await supabase
+      .from("notifications")
+      .update({ is_read: true, read_at: readAt })
+      .in("id", unreadIds)
+      .eq("user_id", user.id);
+
+    setNotifications((current) => current.map((item) => (
+      unreadIds.includes(item.id) ? { ...item, is_read: true, read_at: item.read_at ?? readAt } : item
+    )));
   };
 
   const saveProfile = async () => {
@@ -118,6 +187,12 @@ function Account() {
     return Math.round((due.getTime() - today.getTime()) / 86400000);
   }, [effectiveDueDate]);
 
+  useEffect(() => {
+    if (tab === "notifications" && unreadNotificationsCount > 0) {
+      void markNotificationsAsRead();
+    }
+  }, [tab, unreadNotificationsCount]);
+
   if (authLoading || !profile) {
     return (
       <SiteLayout>
@@ -134,6 +209,7 @@ function Account() {
     { v: "cars", l: "سياراتي", icon: CarIcon },
     { v: "services", l: "سجل الخدمات", icon: Wrench },
     { v: "reviews", l: "تقييماتي", icon: Star },
+    { v: "notifications", l: "الإشعارات", icon: Bell },
     { v: "profile", l: "الإعدادات", icon: User },
   ];
 
@@ -193,6 +269,11 @@ function Account() {
                   }`}
                 >
                   <t.icon className="h-4 w-4" /> {t.l}
+                  {t.v === "notifications" && unreadNotificationsCount > 0 && (
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                      {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -385,6 +466,94 @@ function Account() {
               {tab === "services" && (
                 <Panel title="سجل خدماتي" icon={Wrench}>
                   <ServiceTimeline services={services} />
+                </Panel>
+              )}
+
+              {tab === "notifications" && (
+                <Panel
+                  title="الإشعارات"
+                  icon={Bell}
+                  action={(
+                    <div className="inline-flex items-center gap-2 text-xs">
+                      <span className="rounded-full bg-secondary px-3 py-1 font-bold text-muted-foreground">
+                        غير المقروء: {unreadNotificationsCount}
+                      </span>
+                    </div>
+                  )}
+                >
+                  {notificationsLoading ? (
+                    <div className="grid place-items-center py-16">
+                      <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <Bell className="mx-auto mb-3 size-12 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">لا توجد إشعارات بعد</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`rounded-2xl border p-4 transition ${
+                            notification.is_read
+                              ? "border-border bg-secondary/20"
+                              : "border-primary/20 bg-primary/5"
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-extrabold">{notification.title}</h3>
+                                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                                  notification.is_read
+                                    ? "bg-secondary text-muted-foreground"
+                                    : "bg-primary/10 text-primary"
+                                }`}>
+                                  {notification.is_read ? "مقروء" : "غير مقروء"}
+                                </span>
+                              </div>
+                              {notification.body && (
+                                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                                  {notification.body}
+                                </p>
+                              )}
+                            </div>
+                            {!notification.is_read && (
+                              <span className="mt-1 size-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                            )}
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                            <span>
+                              أُرسلت: {new Date(notification.created_at).toLocaleString("ar-LY", { dateStyle: "medium", timeStyle: "short" })}
+                            </span>
+                            {notification.read_at && (
+                              <span>
+                                قُرئت: {new Date(notification.read_at).toLocaleString("ar-LY", { dateStyle: "medium", timeStyle: "short" })}
+                              </span>
+                            )}
+                          </div>
+
+                          {notification.link_to && (
+                            <div className="mt-3">
+                              <a
+                                href={notification.link_to}
+                                onClick={() => {
+                                  if (!notification.is_read) {
+                                    void markNotificationsAsRead([notification.id]);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
+                              >
+                                فتح الرابط
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </Panel>
               )}
 

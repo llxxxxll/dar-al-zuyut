@@ -50,6 +50,28 @@ function isBroadcastDraftEmpty(draft: typeof DEFAULT_FORM) {
   );
 }
 
+async function getTargetUserIds(targetType: string) {
+  const { data: customerRoles, error } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "customer");
+
+  if (error) throw error;
+
+  const customerIds = [...new Set((customerRoles ?? []).map((row) => row.user_id).filter(Boolean))];
+
+  // The current admin form does not collect per-segment filters yet,
+  // so every in-app broadcast falls back to the customer audience only.
+  switch (targetType) {
+    case "all_customers":
+    case "specific_customers":
+    case "oil_type":
+    case "service_type":
+    default:
+      return customerIds;
+  }
+}
+
 function Broadcasts() {
   const [list, setList] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,35 +129,48 @@ function Broadcasts() {
 
   const sendNow = async (b: Broadcast) => {
     setSending(b.id);
-    // 1) target customers
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id");
-    const targets = (profiles as { id: string }[]) ?? [];
+    try {
+      // 1) Resolve customer targets only
+      const targetUserIds = await getTargetUserIds(b.target_type);
 
-    // 2) Insert in-app notifications
-    if (b.send_in_app && targets.length) {
-      const rows = targets.map((p) => ({
-        user_id: p.id,
-        title: b.title,
-        body: b.body,
-        link_to: b.link_url,
-        type: "system" as const,
-      }));
-      // chunk to avoid huge payload
-      for (let i = 0; i < rows.length; i += 500) {
-        await supabase.from("notifications").insert(rows.slice(i, i + 500));
+      // 2) Insert in-app notifications
+      if (b.send_in_app && targetUserIds.length) {
+        const rows = targetUserIds.map((userId) => ({
+          user_id: userId,
+          title: b.title,
+          body: b.body,
+          link_to: b.link_url,
+          type: "system" as const,
+        }));
+
+        // Chunk large payloads to avoid insert limits.
+        for (let i = 0; i < rows.length; i += 500) {
+          const { error } = await supabase.from("notifications").insert(rows.slice(i, i + 500));
+          if (error) throw error;
+        }
       }
-    }
 
-    // 3) SMS / WhatsApp via edge function (best-effort)
-    if (b.send_sms || b.send_whatsapp) {
-      try { await supabase.functions.invoke("send-reminder-message", { body: { broadcast_id: b.id } }); } catch {}
-    }
+      // 3) SMS / WhatsApp via edge function (best-effort)
+      if (b.send_sms || b.send_whatsapp) {
+        try {
+          await supabase.functions.invoke("send-reminder-message", { body: { broadcast_id: b.id } });
+        } catch {}
+      }
 
-    await supabase.from("broadcasts").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", b.id);
-    setSending(null);
-    load();
+      const { error: updateError } = await supabase
+        .from("broadcasts")
+        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .eq("id", b.id);
+
+      if (updateError) throw updateError;
+
+      load();
+    } catch (error) {
+      console.error("Failed to send broadcast", error);
+      alert("تعذر إرسال النشرة الآن. حاول مرة أخرى.");
+    } finally {
+      setSending(null);
+    }
   };
 
   return (
