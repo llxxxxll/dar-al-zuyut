@@ -37,6 +37,19 @@ const DEFAULT_FORM = {
   scheduled_at: "",
 };
 
+function isBroadcastDraftEmpty(draft: typeof DEFAULT_FORM) {
+  return !(
+    draft.title.trim() ||
+    draft.body.trim() ||
+    draft.link_url.trim() ||
+    draft.scheduled_at ||
+    draft.target_type !== DEFAULT_FORM.target_type ||
+    draft.send_in_app !== DEFAULT_FORM.send_in_app ||
+    draft.send_sms ||
+    draft.send_whatsapp
+  );
+}
+
 function Broadcasts() {
   const [list, setList] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,20 +61,15 @@ function Broadcasts() {
   const { clearDraft, hasDraft, restored } = useLocalDraft({
     storageKey: "daralzuyut:broadcast:draft",
     value: form,
-    onRestore: (draft) => setForm({ ...DEFAULT_FORM, ...draft }),
-    enabled: showForm,
+    defaultValue: DEFAULT_FORM,
+    onRestore: (draft) => {
+      setForm({ ...DEFAULT_FORM, ...draft });
+      setShowForm(true);
+    },
+    enabled: true,
     debounceMs: 800,
-    shouldSave: (draft) =>
-      Boolean(
-        draft.title.trim() ||
-        draft.body.trim() ||
-        draft.link_url.trim() ||
-        draft.scheduled_at ||
-        draft.target_type !== DEFAULT_FORM.target_type ||
-        draft.send_in_app !== DEFAULT_FORM.send_in_app ||
-        draft.send_sms ||
-        draft.send_whatsapp,
-      ),
+    isEmpty: isBroadcastDraftEmpty,
+    isEqualToDefault: (draft, defaultValue) => JSON.stringify(draft) === JSON.stringify(defaultValue),
   });
 
   const load = async () => {
@@ -144,14 +152,6 @@ function Broadcasts() {
 
       {showForm && (
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-          <DraftControls
-            restored={restored}
-            hasDraft={hasDraft}
-            onClear={() => {
-              clearDraft();
-              setForm(DEFAULT_FORM);
-            }}
-          />
           <input className={inputCls} placeholder="العنوان" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <textarea rows={3} className={ta} placeholder="النص…" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
           <div className="grid sm:grid-cols-2 gap-3">
@@ -174,7 +174,12 @@ function Broadcasts() {
               <AlertCircle className="size-4" /> سيُنفّذ الإرسال الفعلي عند ضبط مفاتيح المزود (Resala) في الإعدادات.
             </div>
           )}
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <DraftControls
+              restored={restored}
+              hasDraft={hasDraft}
+              onClear={clearDraft}
+            />
             <button disabled={saving || !form.title.trim()} onClick={create} className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-foreground text-background font-bold disabled:opacity-60">
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} حفظ كمسودة
             </button>

@@ -48,6 +48,10 @@ const DEFAULTS: SettingsState = {
   reminder_template: "مرحباً {name}، اقترب موعد تغيير زيت سيارتك. زورنا في {brand}.",
 };
 
+function isSettingsDraftEmpty(draft: SettingsState) {
+  return JSON.stringify(draft) === JSON.stringify(DEFAULTS);
+}
+
 function AdminSettings() {
   const [state, setState] = useState<SettingsState>(DEFAULTS);
   const [loadedState, setLoadedState] = useState<SettingsState | null>(null);
@@ -60,11 +64,13 @@ function AdminSettings() {
   const { clearDraft, hasDraft, restored } = useLocalDraft({
     storageKey: "daralzuyut:settings:draft",
     value: state,
+    defaultValue: DEFAULTS,
     onRestore: (draft) => setState((prev) => ({ ...prev, ...draft })),
     enabled: !loading,
     ready: !loading,
     debounceMs: 1000,
-    shouldSave: (draft) => loadedState != null && JSON.stringify(draft) !== JSON.stringify(loadedState),
+    isEmpty: isSettingsDraftEmpty,
+    isEqualToDefault: (draft) => loadedState != null ? JSON.stringify(draft) === JSON.stringify(loadedState) : JSON.stringify(draft) === JSON.stringify(DEFAULTS),
   });
 
   useEffect(() => {
@@ -225,16 +231,8 @@ function AdminSettings() {
         </div>
       </div>
 
-      <DraftControls
-        restored={restored}
-        hasDraft={hasDraft}
-        onClear={() => {
-          clearDraft();
-          setState(loadedState ?? DEFAULTS);
-        }}
-      />
-
       <div className="flex items-center justify-between gap-4">
+        <DraftControls restored={restored} hasDraft={hasDraft} onClear={clearDraft} />
         {savedAt && <div className="text-xs text-emerald-600">تم الحفظ ✓</div>}
         <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-primary to-primary-glow text-primary-foreground font-semibold shadow-elegant disabled:opacity-60 mr-auto">
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} حفظ الإعدادات

@@ -59,6 +59,11 @@ function toPromoDraft(source: Partial<Promo>) {
   };
 }
 
+const EMPTY_PROMOTION_DRAFT = {
+  baseline: null as ReturnType<typeof toPromoDraft> | null,
+  current: null as ReturnType<typeof toPromoDraft> | null,
+};
+
 function AdminPromotions() {
   const [rows, setRows] = useState<Promo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,27 +71,27 @@ function AdminPromotions() {
   const [baseline, setBaseline] = useState<ReturnType<typeof toPromoDraft> | null>(null);
 
   const getNewPromotion = () => toPromoDraft({ ...empty, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 });
+  const promotionDraft = editing
+    ? { baseline: baseline ?? toPromoDraft(editing), current: toPromoDraft(editing) }
+    : EMPTY_PROMOTION_DRAFT;
 
   const { clearDraft, hasDraft, restored } = useLocalDraft({
-    storageKey: `daralzuyut:promotion:draft:${editing?.id ?? "new"}`,
-    value: toPromoDraft(editing ?? getNewPromotion()),
-    onRestore: (draft) => setEditing({ ...(baseline ?? getNewPromotion()), ...draft }),
-    enabled: !!editing,
+    storageKey: "daralzuyut:promotion:draft",
+    value: promotionDraft,
+    defaultValue: EMPTY_PROMOTION_DRAFT,
+    onRestore: (draft) => {
+      if (!draft.current) return;
+      const restoredBaseline = draft.baseline ?? draft.current;
+      setBaseline(restoredBaseline);
+      setEditing({ ...restoredBaseline, ...draft.current });
+    },
+    enabled: true,
     debounceMs: 800,
-    shouldSave: (draft) =>
-      baseline != null &&
-      JSON.stringify(draft) !== JSON.stringify(baseline) &&
-      Boolean(
-        draft.title.trim() ||
-        draft.description?.trim() ||
-        draft.image_url?.trim() ||
-        draft.discount_percent != null ||
-        draft.price != null ||
-        draft.badge?.trim() ||
-        draft.cta_label?.trim() ||
-        draft.cta_link?.trim() ||
-        draft.ends_at,
-      ),
+    isEmpty: (draft) => draft.current == null,
+    isEqualToDefault: (draft) => {
+      if (!draft.current) return true;
+      return JSON.stringify(draft.current) === JSON.stringify(draft.baseline ?? draft.current);
+    },
   });
 
   const load = async () => {
@@ -218,16 +223,6 @@ function AdminPromotions() {
                 <h3 className="font-extrabold text-xl">{editing.id ? "تعديل عرض" : "عرض جديد"}</h3>
                 <button onClick={() => { setEditing(null); setBaseline(null); }} className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
               </div>
-              <DraftControls
-                restored={restored}
-                hasDraft={hasDraft}
-                className="mb-4"
-                onClear={() => {
-                  clearDraft();
-                  const resetTo = baseline ?? getNewPromotion();
-                  setEditing({ ...resetTo });
-                }}
-              />
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="العنوان *">
                   <input value={editing.title || ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className={inp} />
@@ -277,7 +272,8 @@ function AdminPromotions() {
                   </label>
                 </div>
               </div>
-              <div className="flex gap-2 justify-end mt-6">
+              <div className="flex gap-2 justify-end items-center mt-6">
+                <DraftControls restored={restored} hasDraft={hasDraft} onClear={clearDraft} />
                 <button onClick={() => { setEditing(null); setBaseline(null); }} className="h-11 px-5 rounded-full border border-border font-semibold hover:bg-muted/50">إلغاء</button>
                 <button onClick={save} disabled={!editing.title} className="h-11 px-6 rounded-full bg-gold-gradient text-primary-foreground font-bold shadow-elegant disabled:opacity-50">
                   حفظ

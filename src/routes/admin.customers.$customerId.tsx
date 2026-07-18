@@ -331,23 +331,11 @@ function ServiceForm({ customerId, cars, onDone, onError }: {
   const { clearDraft, hasDraft, restored } = useLocalDraft({
     storageKey: `daralzuyut:customer-service:draft:${customerId}`,
     value: form,
+    defaultValue: initialForm,
     onRestore: (draft) => setForm({ ...createInitialServiceForm(cars), ...draft }),
+    isEmpty: (draft) => JSON.stringify(draft) === JSON.stringify(initialForm),
+    isEqualToDefault: (draft, defaultValue) => JSON.stringify(draft) === JSON.stringify(defaultValue),
     debounceMs: 800,
-    shouldSave: (draft) =>
-      JSON.stringify(draft) !== JSON.stringify(initialForm) &&
-      Boolean(
-        draft.car_id ||
-        draft.service_id ||
-        draft.oil_brand.trim() ||
-        draft.oil_type.trim() ||
-        draft.oil_viscosity.trim() ||
-        draft.additives.trim() ||
-        draft.staff_name.trim() ||
-        draft.odometer_value ||
-        draft.total_amount ||
-        draft.notes.trim() ||
-        draft.customer_notes.trim(),
-      ),
   });
   useEffect(() => {
     supabase.from("services").select("id,name,price").eq("is_active", true).order("sort_order").then(({ data }) => setCatalog(data ?? []));
@@ -366,15 +354,6 @@ function ServiceForm({ customerId, cars, onDone, onError }: {
 
   return (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-      <DraftControls
-        restored={restored}
-        hasDraft={hasDraft}
-        className="mt-2"
-        onClear={() => {
-          clearDraft();
-          setForm(createInitialServiceForm(cars));
-        }}
-      />
       <div className="grid sm:grid-cols-2 gap-3 pt-2">
         <Field label="تاريخ الخدمة"><input type="date" className={inputCls} value={form.service_date} onChange={(e) => setForm({ ...form, service_date: e.target.value })} /></Field>
         <Field label="السيارة">
@@ -437,6 +416,7 @@ function ServiceForm({ customerId, cars, onDone, onError }: {
             </div>
           )}
         </div>
+        <DraftControls restored={restored} hasDraft={hasDraft} onClear={clearDraft} />
         <button
           disabled={saving || !canSave}
           onClick={async () => {

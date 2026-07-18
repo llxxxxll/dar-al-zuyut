@@ -26,6 +26,10 @@ const EMPTY_QUICK_SERVICE_DRAFT = {
   amount: "",
 };
 
+function isQuickServiceDraftEmpty(draft: typeof EMPTY_QUICK_SERVICE_DRAFT) {
+  return JSON.stringify(draft) === JSON.stringify(EMPTY_QUICK_SERVICE_DRAFT);
+}
+
 function QuickService() {
   const navigate = useNavigate();
   const { oilIntervalKm, oilReminderDays } = useReminderSettings();
@@ -73,6 +77,7 @@ function QuickService() {
   const { clearDraft, hasDraft, restored } = useLocalDraft({
     storageKey: "daralzuyut:quick-service:draft",
     value: quickDraft,
+    defaultValue: EMPTY_QUICK_SERVICE_DRAFT,
     onRestore: (draft) => {
       setQ(draft.q ?? EMPTY_QUICK_SERVICE_DRAFT.q);
       setOdometer(draft.odometer ?? EMPTY_QUICK_SERVICE_DRAFT.odometer);
@@ -92,17 +97,8 @@ function QuickService() {
       }
     },
     debounceMs: 800,
-    shouldSave: (draft) =>
-      Boolean(
-        draft.q.trim() ||
-        draft.customer?.id ||
-        draft.carId ||
-        draft.odometer ||
-        draft.oilBrand.trim() ||
-        draft.oilType.trim() ||
-        draft.amount ||
-        draft.showMore,
-      ),
+    isEmpty: isQuickServiceDraftEmpty,
+    isEqualToDefault: (draft, defaultValue) => JSON.stringify(draft) === JSON.stringify(defaultValue),
   });
 
   // Live search
@@ -207,15 +203,6 @@ function QuickService() {
           {status.kind === "ok" ? <CheckCircle2 className="size-5" /> : <AlertCircle className="size-5" />} {status.msg}
         </div>
       )}
-
-      <DraftControls
-        restored={restored}
-        hasDraft={hasDraft}
-        onClear={() => {
-          clearDraft();
-          reset();
-        }}
-      />
 
       {/* Step 1: customer */}
       <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
@@ -334,14 +321,19 @@ function QuickService() {
 
       {/* Save */}
       {customer && carId && (
-        <button
-          disabled={!canSave}
-          onClick={save}
-          className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-primary-glow text-primary-foreground font-extrabold text-base shadow-elegant disabled:opacity-50 inline-flex items-center justify-center gap-2"
-        >
-          {saving ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />}
-          حفظ الخدمة
-        </button>
+        <div className="space-y-3">
+          <div className="flex items-center justify-end">
+            <DraftControls restored={restored} hasDraft={hasDraft} onClear={clearDraft} />
+          </div>
+          <button
+            disabled={!canSave}
+            onClick={save}
+            className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-primary-glow text-primary-foreground font-extrabold text-base shadow-elegant disabled:opacity-50 inline-flex items-center justify-center gap-2"
+          >
+            {saving ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />}
+            حفظ الخدمة
+          </button>
+        </div>
       )}
     </div>
   );

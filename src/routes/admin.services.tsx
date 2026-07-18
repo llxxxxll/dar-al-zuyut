@@ -43,6 +43,11 @@ function toServiceDraft(source: Partial<Service>) {
   };
 }
 
+const EMPTY_SERVICE_DRAFT = {
+  baseline: null as ReturnType<typeof toServiceDraft> | null,
+  current: null as ReturnType<typeof toServiceDraft> | null,
+};
+
 function slugify(s: string) {
   return s.toLowerCase().trim()
     .replace(/[^\w\u0600-\u06FF\s-]/g, "")
@@ -58,25 +63,27 @@ function ServicesCatalog() {
   const [baseline, setBaseline] = useState<ReturnType<typeof toServiceDraft> | null>(null);
 
   const getNewService = () => toServiceDraft({ ...EMPTY, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 });
+  const serviceDraft = editing
+    ? { baseline: baseline ?? toServiceDraft(editing), current: toServiceDraft(editing) }
+    : EMPTY_SERVICE_DRAFT;
 
   const { clearDraft, hasDraft, restored } = useLocalDraft({
-    storageKey: `daralzuyut:service-catalog:draft:${editing?.id ?? "new"}`,
-    value: toServiceDraft(editing ?? getNewService()),
-    onRestore: (draft) => setEditing({ ...(baseline ?? getNewService()), ...draft }),
-    enabled: !!editing,
+    storageKey: "daralzuyut:service-catalog:draft",
+    value: serviceDraft,
+    defaultValue: EMPTY_SERVICE_DRAFT,
+    onRestore: (draft) => {
+      if (!draft.current) return;
+      const restoredBaseline = draft.baseline ?? draft.current;
+      setBaseline(restoredBaseline);
+      setEditing({ ...restoredBaseline, ...draft.current });
+    },
+    enabled: true,
     debounceMs: 800,
-    shouldSave: (draft) =>
-      baseline != null &&
-      JSON.stringify(draft) !== JSON.stringify(baseline) &&
-      Boolean(
-        draft.name.trim() ||
-        draft.slug.trim() ||
-        draft.description.trim() ||
-        draft.price != null ||
-        draft.duration_minutes != null ||
-        draft.icon.trim() ||
-        draft.image_url.trim(),
-      ),
+    isEmpty: (draft) => draft.current == null,
+    isEqualToDefault: (draft) => {
+      if (!draft.current) return true;
+      return JSON.stringify(draft.current) === JSON.stringify(draft.baseline ?? draft.current);
+    },
   });
 
   const load = async () => {
@@ -222,17 +229,6 @@ function ServicesCatalog() {
                 <div className="font-extrabold text-lg">{"id" in editing && editing.id ? "تعديل خدمة" : "خدمة جديدة"}</div>
                 <button onClick={() => { setEditing(null); setBaseline(null); }} className="size-9 grid place-items-center rounded-lg hover:bg-muted"><X className="size-4" /></button>
               </div>
-              <div className="p-5 pb-0">
-                <DraftControls
-                  restored={restored}
-                  hasDraft={hasDraft}
-                  onClear={() => {
-                    clearDraft();
-                    const resetTo = baseline ?? getNewService();
-                    setEditing({ ...resetTo });
-                  }}
-                />
-              </div>
               <div className="p-5 grid sm:grid-cols-2 gap-4">
                 <Lbl text="الاسم *"><input className={inp} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></Lbl>
                 <Lbl text="الرابط (slug)"><input className={inp} dir="ltr" value={editing.slug} placeholder="auto" onChange={(e) => setEditing({ ...editing, slug: e.target.value })} /></Lbl>
@@ -256,6 +252,7 @@ function ServicesCatalog() {
                 </label>
               </div>
               <div className="flex items-center justify-end gap-3 p-5 border-t border-border bg-muted/30">
+                <DraftControls restored={restored} hasDraft={hasDraft} onClear={clearDraft} />
                 <button onClick={() => { setEditing(null); setBaseline(null); }} disabled={saving} className="h-11 px-5 rounded-xl border border-border bg-card font-semibold">إلغاء</button>
                 <button onClick={save} disabled={saving || !editing.name.trim()} className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-gold-gradient text-primary-foreground font-bold disabled:opacity-60">
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} حفظ
