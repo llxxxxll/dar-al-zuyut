@@ -219,7 +219,15 @@ function Account() {
     icon: React.ComponentType<{ className?: string }>;
     desc: string;
     badge?: string | number;
+    span2?: boolean;
   }[] = [
+    {
+      v: "overview",
+      l: "نظرة عامة",
+      icon: LayoutDashboard,
+      desc: "موعد تغيير الزيت والملخص",
+      span2: true,
+    },
     {
       v: "notifications",
       l: "الإشعارات",
@@ -299,6 +307,8 @@ function Account() {
                 key={item.v}
                 onClick={() => setTab(item.v)}
                 className={`rounded-2xl border p-4 shadow-card text-right transition-all min-w-0 ${
+                  item.span2 ? "col-span-2" : ""
+                } ${
                   tab === item.v
                     ? "border-primary/30 bg-primary/5"
                     : "border-border bg-card hover:border-primary/20 hover:bg-secondary/30"
@@ -371,6 +381,15 @@ function Account() {
               transition={{ duration: 0.2 }}
               className="min-w-0 space-y-6 overflow-x-hidden"
             >
+              {/* Back Button - Mobile Only */}
+              {tab !== "overview" && (
+                <button
+                  onClick={() => setTab("overview")}
+                  className="md:hidden inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition"
+                >
+                  ← العودة إلى نظرة عامة
+                </button>
+              )}
               {tab === "overview" && (
                 <>
                   {hasService && effectiveDueDate ? (
