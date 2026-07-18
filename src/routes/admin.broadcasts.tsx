@@ -50,15 +50,30 @@ function isBroadcastDraftEmpty(draft: typeof DEFAULT_FORM) {
   );
 }
 
-async function getTargetUserIds(targetType: string) {
-  const { data: customerRoles, error } = await supabase
+async function getTargetUserIds(targetType: string, senderUserId?: string) {
+  const { data: roles, error } = await supabase
     .from("user_roles")
-    .select("user_id")
-    .eq("role", "customer");
+    .select("user_id,role")
+    .in("role", ["customer", "admin", "staff"]);
 
   if (error) throw error;
 
-  const customerIds = [...new Set((customerRoles ?? []).map((row) => row.user_id).filter(Boolean))];
+  const roleMap = new Map<string, Set<string>>();
+
+  for (const row of roles ?? []) {
+    if (!row.user_id) continue;
+    const currentRoles = roleMap.get(row.user_id) ?? new Set<string>();
+    currentRoles.add(row.role);
+    roleMap.set(row.user_id, currentRoles);
+  }
+
+  const customerIds = [...roleMap.entries()]
+    .filter(([userId, assignedRoles]) => {
+      if (!userId) return false;
+      if (senderUserId && userId === senderUserId) return false;
+      return assignedRoles.has("customer") && !assignedRoles.has("admin") && !assignedRoles.has("staff");
+    })
+    .map(([userId]) => userId);
 
   // The current admin form does not collect per-segment filters yet,
   // so every in-app broadcast falls back to the customer audience only.
@@ -130,8 +145,11 @@ function Broadcasts() {
   const sendNow = async (b: Broadcast) => {
     setSending(b.id);
     try {
+      const { data: authData } = await supabase.auth.getUser();
+      const senderUserId = authData.user?.id;
+
       // 1) Resolve customer targets only
-      const targetUserIds = await getTargetUserIds(b.target_type);
+      const targetUserIds = await getTargetUserIds(b.target_type, senderUserId);
 
       // 2) Insert in-app notifications
       if (b.send_in_app && targetUserIds.length) {
@@ -140,6 +158,8 @@ function Broadcasts() {
           title: b.title,
           body: b.body,
           link_to: b.link_url,
+          is_read: false,
+          read_at: null,
           type: "system" as const,
         }));
 
